@@ -20,79 +20,92 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 
-public class Part5_ActivityManagerGUI_Starter<BaseActivity_Starter> extends JFrame {
+public class Part5_ActivityManagerGUI_Starter extends JFrame {
 
     // TODO 1: Declare Swing components
-    // private JTextField nameField;
-    // private JTextField categoryField;
-    // private JTextField hoursField;
-    // private JTextField priorityField;
-    // private JButton addButton;
-    // private JButton summaryButton;
-    // private JTextArea outputArea;
-
-    private JTextField nameField, categoryField, hoursField, priorityField;
-    private JButton addButton, summaryButton;
+    private JTextField nameField;
+    private JTextField categoryField;
+    private JTextField hoursField;
+    private JTextField priorityField;
+    private JButton addButton;
+    private JButton summaryButton;
     private JTextArea outputArea;
 
     // TODO 2: Store activities
-    // private ArrayList<BaseActivity_Starter> activities = new ArrayList<>();
-
     private ArrayList<BaseActivity_Starter> activities = new ArrayList<>();
 
     public Part5_ActivityManagerGUI_Starter() {
         super("Student Activity & Event Manager (Starter)");
 
         // TODO 3: Initialize components
-        JPanel gridPanel = new JPanel(new GridLayout(3, 3));
+        nameField = new JTextField(10);
+        categoryField = new JTextField(10);
+        hoursField = new JTextField(5);
+        priorityField = new JTextField(5);
 
+        addButton = new JButton("Add Activity");
+        summaryButton = new JButton("Show Summary");
 
-        nameField = new JTextField();
-        categoryField = new JTextField();
-        hoursField = new JTextField();
-        priorityField = new JTextField();
-
-
-        gridPanel.add(new JLabel("Activity Name: "));
-        gridPanel.add(nameField);
-        gridPanel.add(new JLabel(" Category: "));
-        gridPanel.add(categoryField);
-        gridPanel.add(new JLabel(" Weekly Hours: "));
-        gridPanel.add(hoursField);
-        gridPanel.add(new JLabel(" Priority Level: "));
-        gridPanel.add(priorityField);
-
-        addButton = new JButton("Add");
-        summaryButton = new JButton("Summary");
-        gridPanel.add(addButton);
-        gridPanel.add(summaryButton);
-
-        outputArea = new JTextArea();
+        outputArea = new JTextArea(10, 30);
         outputArea.setEditable(false);
-        gridPanel.add(outputArea);
+        outputArea.setLineWrap(true);
+        outputArea.setWrapStyleWord(true);
 
         // TODO 4: Build input panel using GridLayout (labels + fields + buttons)
+        JPanel inputPanel = new JPanel(new GridLayout(4, 2, 6, 6));
+        inputPanel.setBorder(BorderFactory.createTitledBorder("New Activity"));
 
-        setLayout(new BorderLayout(10,10));
+        inputPanel.add(new JLabel("Activity Name:"));
+        inputPanel.add(nameField);
+        inputPanel.add(new JLabel("Category: "));
+        inputPanel.add(categoryField);
+        inputPanel.add(new JLabel("Weekly Hours:"));
+        inputPanel.add(hoursField);
+        inputPanel.add(new JLabel("Priority (1-3):"));
+        inputPanel.add(priorityField);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 6));
+        buttonPanel.add(addButton);
+        buttonPanel.add(summaryButton);
+
+        JPanel outputPanel = new JPanel(new BorderLayout());
+        outputPanel.setBorder(BorderFactory.createTitledBorder("Output"));
+        outputPanel.add(outputArea, BorderLayout.CENTER);
 
         // TODO 5: Add ActionListeners:
         // - Add Activity: validate input, create activity, append confirmation text
         // - Generate Summary: buildReport() and display in text area
-
-        addButton.addActionListener(e -> {
-            outputArea.setText(buildReport());
-        });
-
-        summaryButton.addActionListener(e -> {
-            outputArea.setText(buildReport());
-        });
+        addButton.addActionListener(e -> handleAddActivity());
+        summaryButton.addActionListener(e -> outputArea.setText(buildReport()));
 
         // TODO 6: Add panels to JFrame and configure window settings
         // setSize(...), setDefaultCloseOperation(...), setVisible(true)
-        add(gridPanel, BorderLayout.NORTH);
-        setSize(600, 450);
+        setLayout(new BorderLayout(8, 8));
+        add(inputPanel,  BorderLayout.NORTH);
+        add(buttonPanel, BorderLayout.CENTER);
+        add(outputPanel, BorderLayout.SOUTH);
+
+        setSize(500, 450);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
         setVisible(true);
+    }
+
+    private void handleAddActivity() {
+        BaseActivity_Starter activity = createActivityFromInput();
+        if (activity != null) {
+            activities.add(activity);
+            outputArea.append("Added: " + activity.getDescription() + "\n");
+            clearFields();
+        }
+    }
+
+    private void clearFields() {
+        nameField.setText("");
+        categoryField.setText("");
+        hoursField.setText("");
+        priorityField.setText("");
+        nameField.requestFocus();
     }
 
     /*
@@ -104,8 +117,41 @@ public class Part5_ActivityManagerGUI_Starter<BaseActivity_Starter> extends JFra
      Return null if invalid (and show a JOptionPane).
     */
     private BaseActivity_Starter createActivityFromInput() {
-        // TODO
-        return null;
+        String name = nameField.getText().trim();
+        String category = categoryField.getText().trim();
+        String hoursStr = hoursField.getText().trim();
+        String priStr = priorityField.getText().trim();
+
+        if (name.isEmpty() || category.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "Activity name and category cannot be empty.",
+                    "Input Error", JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+
+        double weeklyHours;
+        try {
+            weeklyHours = Double.parseDouble(hoursStr);
+            if (weeklyHours < 0) throw new NumberFormatException();
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Weekly hours must be a non-negative number (e.g. 3.5).",
+                    "Input Error", JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+
+        int priority;
+        try {
+            priority = Integer.parseInt(priStr);
+            if (priority < 1 || priority > 3) throw new NumberFormatException();
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Priority must be 1, 2, or 3.",
+                    "Input Error", JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+
+        return new BaseActivity_Starter(name, category, weeklyHours, priority);
     }
 
     /*
@@ -115,11 +161,80 @@ public class Part5_ActivityManagerGUI_Starter<BaseActivity_Starter> extends JFra
      - total priority score
     */
     private String buildReport() {
-        // TODO
-        return "";
+        if (activities.isEmpty()) {
+            return "No activities recorded yet.\n";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("================================\n");
+        sb.append("       ACTIVITY SUMMARY\n");
+        sb.append("================================\n");
+
+        double totalHours = 0;
+        int totalPriority = 0;
+
+        for (BaseActivity_Starter a : activities) {
+            sb.append("* ").append(a.getDescription()).append("\n");
+            totalHours += a.getWeeklyHours();
+            totalPriority += a.getPriority();
+        }
+
+        sb.append("================================\n");
+        sb.append(String.format("Total activities : %d\n", activities.size()));
+        sb.append(String.format("Total hours/week : %.1f\n", totalHours));
+        sb.append(String.format("Total priority   : %d\n",  totalPriority));
+        sb.append("================================\n");
+
+        return sb.toString();
     }
 
     public static void main(String[] args) {
         new Part5_ActivityManagerGUI_Starter();
+    }
+}
+
+
+public class BaseActivity_Starter {
+
+    private String name;
+    private String category;
+    private double weeklyHours;
+    private int priority;          // 1 = low, 2 = medium, 3 = high
+
+    public BaseActivity_Starter(String name, String category,
+                                double weeklyHours, int priority) {
+        this.name = name;
+        this.category = category;
+        this.weeklyHours = weeklyHours;
+        this.priority = priority;
+    }
+
+    // ── Getters ──────────────────────────────────────────────────────────────
+
+    public String getName()  {
+        return name;
+    }
+    public String getCategory()  {
+        return category;
+    }
+    public double getWeeklyHours() {
+        return weeklyHours;
+    }
+    public int    getPriority()    {
+        return priority;
+    }
+
+    /**
+     * One-line summary used by the GUI report.
+     * Example: "[Study] Calculus | 5.0 hrs/wk | Priority: 2"
+     */
+    public String getDescription() {
+        return String.format("[%s] %s | %.1f hrs/wk | Priority: %d",
+                category, name, weeklyHours, priority);
+    }
+
+    @Override
+    public String toString() {
+        return getDescription();
     }
 }
